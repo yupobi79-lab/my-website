@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VALTRACK</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --red: #ff4655;
+      --bg: #0f1923;
+      --bg2: #1a2634;
+      --bg3: #243447;
+      --text: #ece8e1;
+      --muted: #768079;
+      --border: rgba(255,70,85,0.2);
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Noto Sans KR', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        repeating-linear-gradient(0deg,transparent,transparent 60px,rgba(255,70,85,0.03) 60px,rgba(255,70,85,0.03) 61px),
+        repeating-linear-gradient(90deg,transparent,transparent 60px,rgba(255,70,85,0.03) 60px,rgba(255,70,85,0.03) 61px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .wrap { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 60px 24px; }
+
+    /* 헤더 */
+    .header { text-align: center; margin-bottom: 60px; }
+    .logo { font-family: 'Rajdhani', sans-serif; font-size: 52px; font-weight: 700; letter-spacing: 6px; color: var(--text); line-height: 1; }
+    .logo span { color: var(--red); }
+    .tagline { font-size: 12px; letter-spacing: 4px; color: var(--muted); margin-top: 8px; text-transform: uppercase; }
+
+    /* 검색창 */
+    .search-box {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 24px 28px;
+      margin-bottom: 24px;
+      position: relative;
+    }
+    .search-box::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 4px; height: 100%;
+      background: var(--red);
+      border-radius: 4px 0 0 4px;
+    }
+    .search-label { font-size: 11px; letter-spacing: 3px; color: var(--muted); text-transform: uppercase; margin-bottom: 16px; }
+    .search-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .input-group { display: flex; gap: 8px; flex: 1; min-width: 260px; align-items: center; }
+    input {
+      background: var(--bg3);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 2px;
+      color: var(--text);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      padding: 12px 16px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input::placeholder { color: var(--muted); font-weight: 400; }
+    input:focus { border-color: var(--red); }
+    #name-input { flex: 2; }
+    #tag-input { flex: 1; max-width: 120px; }
+    .hash { color: var(--red); font-family: 'Rajdhani', sans-serif; font-size: 22px; font-weight: 700; flex-shrink: 0; }
+    .search-btn {
+      background: var(--red);
+      border: none;
+      border-radius: 2px;
+      color: white;
+      cursor: pointer;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      padding: 12px 28px;
+      text-transform: uppercase;
+      transition: background 0.2s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .search-btn:hover { background: #e03a47; }
+    .search-btn:active { transform: scale(0.97); }
+    .search-btn:disabled { background: var(--bg3); color: var(--muted); cursor: not-allowed; }
+
+    /* API 키 입력 */
+    .api-notice {
+      background: rgba(255,70,85,0.06);
+      border: 1px solid rgba(255,70,85,0.15);
+      border-radius: 4px;
+      padding: 14px 18px;
+      margin-bottom: 24px;
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .api-notice span { flex: 1; min-width: 200px; line-height: 1.6; }
+    .api-notice a { color: var(--red); text-decoration: none; }
+    .api-notice a:hover { text-decoration: underline; }
+    #api-key-input {
+      font-size: 13px;
+      padding: 8px 12px;
+      flex: 2;
+      min-width: 200px;
+      letter-spacing: 0.5px;
+    }
+
+    /* 로딩 */
+    .loading { display: none; text-align: center; padding: 40px; }
+    .loading-bar { width: 200px; height: 2px; background: var(--bg3); margin: 0 auto 16px; border-radius: 2px; overflow: hidden; }
+    .loading-bar::after {
+      content: '';
+      display: block;
+      height: 100%;
+      width: 40%;
+      background: var(--red);
+      animation: slide 1s ease-in-out infinite;
+      border-radius: 2px;
+    }
+    @keyframes slide { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }
+    .loading p { font-size: 11px; letter-spacing: 3px; color: var(--muted); text-transform: uppercase; }
+
+    /* 에러 */
+    .error-msg {
+      display: none;
+      background: rgba(255,70,85,0.1);
+      border: 1px solid rgba(255,70,85,0.3);
+      border-radius: 4px;
+      color: #ff6b77;
+      font-size: 13px;
+      padding: 12px 16px;
+      margin-bottom: 24px;
+      letter-spacing: 0.5px;
+      line-height: 1.6;
+    }
+
+    /* 결과 */
+    .result { display: none; animation: fadeIn 0.4s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* 플레이어 헤더 */
+    .player-header {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 28px 32px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      margin-bottom: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+    .player-header::after {
+      content: '';
+      position: absolute;
+      right: -20px; top: -20px;
+      width: 140px; height: 140px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,70,85,0.08) 0%, transparent 70%);
+    }
+    .rank-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: var(--bg3);
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .rank-icon img { width: 56px; height: 56px; object-fit: contain; }
+    .rank-icon-text {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--red);
+      letter-spacing: 1px;
+      text-align: center;
+      line-height: 1.3;
+    }
+    .player-info { flex: 1; }
+    .player-name { font-family: 'Rajdhani', sans-serif; font-size: 32px; font-weight: 700; letter-spacing: 2px; line-height: 1; }
+    .player-tag { color: var(--red); }
+    .player-meta { font-size: 11px; letter-spacing: 2px; color: var(--muted); margin-top: 6px; text-transform: uppercase; }
+    .rank-text { font-family: 'Rajdhani', sans-serif; font-size: 18px; font-weight: 600; margin-top: 4px; }
+
+    /* 스탯 그리드 */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .stat-card {
+      background: var(--bg2);
+      border: 1px solid rgba(255,70,85,0.4);
+      border-radius: 4px;
+      padding: 28px 28px 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0;
+      height: 2px; width: 100%;
+      background: linear-gradient(90deg, var(--red) 0%, transparent 100%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .stat-card:hover::before { opacity: 1; }
+    .stat-label { font-size: 10px; letter-spacing: 3px; color: var(--muted); text-transform: uppercase; margin-bottom: 12px; }
+    .stat-value { font-family: 'Rajdhani', sans-serif; font-size: 48px; font-weight: 700; letter-spacing: 1px; line-height: 1; color: var(--text); }
+    .stat-unit { font-size: 18px; font-weight: 400; color: var(--muted); margin-left: 4px; }
+    .stat-sub { font-size: 12px; color: var(--muted); margin-top: 8px; letter-spacing: 0.5px; }
+
+    /* 헤드샷 게이지 */
+    .hs-gauge { margin-top: 16px; }
+    .hs-bar-bg { height: 4px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
+    .hs-bar-fill { height: 100%; background: var(--red); border-radius: 2px; transition: width 1.2s cubic-bezier(0.16,1,0.3,1); width: 0%; }
+    .hs-labels { display: flex; justify-content: space-between; margin-top: 6px; }
+    .hs-labels span { font-size: 10px; color: var(--muted); letter-spacing: 1px; }
+
+    /* 전적 */
+    .record-row { display: flex; gap: 16px; }
+    .mini-stat { flex: 1; text-align: center; }
+    .mini-label { font-size: 10px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
+    .mini-value { font-family: 'Rajdhani', sans-serif; font-size: 26px; font-weight: 700; }
+    .mini-value.win { color: #4ade80; }
+    .mini-value.loss { color: var(--red); }
+    .mini-value.draw { color: var(--muted); }
+    .divider-v { width: 1px; background: var(--border); margin: 8px 0; }
+    .wr-bar { margin-top: 20px; }
+    .wr-labels { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    .wr-labels span { font-size: 11px; letter-spacing: 1px; }
+    .wr-pct { font-family: 'Rajdhani', sans-serif; font-size: 14px; font-weight: 700; color: #4ade80; }
+    .wr-bar-bg { height: 6px; background: rgba(255,70,85,0.2); border-radius: 3px; overflow: hidden; }
+    .wr-bar-fill { height: 100%; background: #4ade80; border-radius: 3px; transition: width 1.2s cubic-bezier(0.16,1,0.3,1); width: 0%; }
+
+    /* API 상태 뱃지 */
+    .api-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 2px;
+      margin-bottom: 24px;
+    }
+    .api-status.live { background: rgba(74,222,128,0.1); color: #4ade80; border: 1px solid rgba(74,222,128,0.3); }
+    .api-status.demo { background: rgba(255,70,85,0.1); color: var(--red); border: 1px solid rgba(255,70,85,0.3); }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+    .disclaimer { margin-top: 32px; text-align: center; font-size: 11px; color: var(--muted); letter-spacing: 1px; opacity: 0.6; }
+
+    @media (max-width: 600px) {
+      .stats-grid { grid-template-columns: 1fr; }
+      .logo { font-size: 36px; }
+      .stat-value { font-size: 36px; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <div class="logo">VAL<span>TRACK</span></div>
+    <div class="tagline">Valorant Statistics Tracker</div>
+  </div>
+
+  <!-- API 키 안내 -->
+  <div class="api-notice">
+    <span>
+      🔑 <strong style="color: var(--text);">HenrikDev API 키 (선택사항)</strong> —
+      키 없이도 검색 가능하나 하루 요청 제한이 있어요.
+      무료 키 발급: <a href="https://docs.henrikdev.xyz/valorant/authorization" target="_blank">docs.henrikdev.xyz</a>
+    </span>
+    <input type="text" id="api-key-input" placeholder="HDEV-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+  </div>
+
+  <!-- 검색창 -->
+  <div class="search-box">
+    <div class="search-label">플레이어 검색</div>
+    <div class="search-row">
+      <div class="input-group">
+        <input type="text" id="name-input" placeholder="닉네임" />
+        <div class="hash">#</div>
+        <input type="text" id="tag-input" placeholder="KR1" maxlength="8" />
+      </div>
+      <button class="search-btn" id="search-btn" onclick="doSearch()">검색</button>
+    </div>
+  </div>
+
+  <div class="error-msg" id="error-msg"></div>
+  <div class="loading" id="loading">
+    <div class="loading-bar"></div>
+    <p>데이터 불러오는 중...</p>
+  </div>
+
+  <div class="result" id="result">
+    <div id="api-status-badge" class="api-status live"><div class="dot"></div><span>LIVE DATA</span></div>
+
+    <div class="player-header">
+      <div class="rank-icon" id="rank-icon">
+        <div class="rank-icon-text" id="rank-icon-text">—</div>
+      </div>
+      <div class="player-info">
+        <div class="player-name">
+          <span id="display-name">—</span><span class="player-tag" id="display-tag"></span>
+        </div>
+        <div class="player-meta" id="player-meta">불러오는 중...</div>
+        <div class="rank-text" id="rank-text" style="color: var(--muted);">—</div>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <!-- 전적 카드 -->
+      <div class="stat-card">
+        <div class="stat-label">전적 (최근 경쟁전)</div>
+        <div class="record-row">
+          <div class="mini-stat">
+            <div class="mini-label">승</div>
+            <div class="mini-value win" id="wins">—</div>
+          </div>
+          <div class="divider-v"></div>
+          <div class="mini-stat">
+            <div class="mini-label">패</div>
+            <div class="mini-value loss" id="losses">—</div>
+          </div>
+          <div class="divider-v"></div>
+          <div class="mini-stat">
+            <div class="mini-label">무</div>
+            <div class="mini-value draw" id="draws">—</div>
+          </div>
+        </div>
+        <div class="wr-bar">
+          <div class="wr-labels">
+            <span style="color: var(--muted); font-size: 11px; letter-spacing: 1px;">승률</span>
+            <span class="wr-pct" id="wr-pct">—%</span>
+          </div>
+          <div class="wr-bar-bg">
+            <div class="wr-bar-fill" id="wr-bar-fill"></div>
+          </div>
+        </div>
+        <div class="stat-sub" id="total-games">총 — 게임</div>
+      </div>
+
+      <!-- 헤드샷 카드 -->
+      <div class="stat-card">
+        <div class="stat-label">헤드샷율 (최근 매치)</div>
+        <div class="stat-value" id="hs-value">—<span class="stat-unit">%</span></div>
+        <div class="hs-gauge">
+          <div class="hs-bar-bg">
+            <div class="hs-bar-fill" id="hs-bar"></div>
+          </div>
+          <div class="hs-labels">
+            <span>0%</span>
+            <span id="hs-tier">—</span>
+            <span>60%+</span>
+          </div>
+        </div>
+        <div class="stat-sub" id="hs-sub">최근 — 게임 기준</div>
+      </div>
+    </div>
+
+    <div class="disclaimer">
+      ※ HenrikDev 비공식 API 사용 · Riot Games 공식 서비스 아님 · 데이터 최대 수분 지연 가능
+    </div>
+  </div>
+
+</div>
+
+<script>
+const REGION = 'ap'; // 한국 서버
+
+const RANK_COLORS = {
+  'Iron': '#6b7280', 'Bronze': '#cd7f32', 'Silver': '#9ca3af',
+  'Gold': '#f59e0b', 'Platinum': '#22d3ee', 'Diamond': '#a78bfa',
+  'Ascendant': '#34d399', 'Immortal': '#f87171', 'Radiant': '#fde68a',
+  'Unranked': '#768079'
+};
+
+function getHSTier(pct) {
+  if (pct >= 40) return '최상위 (TOP 5%)';
+  if (pct >= 30) return '상위권';
+  if (pct >= 20) return '평균';
+  if (pct >= 10) return '낮음';
+  return '매우 낮음';
+}
+
+function show(id) { document.getElementById(id).style.display = 'block'; }
+function hide(id) { document.getElementById(id).style.display = 'none'; }
+function showFlex(id) { document.getElementById(id).style.display = 'flex'; }
+
+function getApiKey() {
+  return document.getElementById('api-key-input').value.trim();
+}
+
+function buildHeaders() {
+  const key = getApiKey();
+  const h = { 'Accept': 'application/json' };
+  if (key) h['Authorization'] = key;
+  return h;
+}
+
+async function doSearch() {
+  const name = document.getElementById('name-input').value.trim();
+  const tag = document.getElementById('tag-input').value.trim() || 'KR1';
+
+  if (!name) {
+    document.getElementById('error-msg').textContent = '닉네임을 입력해주세요.';
+    show('error-msg');
+    return;
+  }
+
+  hide('error-msg');
+  hide('result');
+  show('loading');
+  document.getElementById('search-btn').disabled = true;
+
+  try {
+    await loadPlayerData(name, tag);
+  } catch (e) {
+    document.getElementById('error-msg').innerHTML =
+      `오류: ${e.message}<br><small style="opacity:0.7">닉네임/태그 확인 또는 API 요청 한도 초과일 수 있어요. 잠시 후 다시 시도해주세요.</small>`;
+    show('error-msg');
+    hide('result');
+  } finally {
+    hide('loading');
+    document.getElementById('search-btn').disabled = false;
+  }
+}
+
+async function loadPlayerData(name, tag) {
+  const headers = buildHeaders();
+  const encodedName = encodeURIComponent(name);
+  const encodedTag = encodeURIComponent(tag);
+
+  // 1. 계정 정보 + 랭크
+  const mmrRes = await fetch(
+    `https://api.henrikdev.xyz/valorant/v2/mmr/${REGION}/${encodedName}/${encodedTag}`,
+    { headers }
+  );
+  const mmrData = await mmrRes.json();
+
+  if (mmrData.status !== 200 || !mmrData.data) {
+    throw new Error(mmrData.message || '플레이어를 찾을 수 없습니다.');
+  }
+
+  // 2. 최근 매치 (전적 + 헤드샷용)
+  const matchRes = await fetch(
+    `https://api.henrikdev.xyz/valorant/v1/lifetime/matches/${REGION}/${encodedName}/${encodedTag}?mode=competitive&size=20`,
+    { headers }
+  );
+  const matchData = await matchRes.json();
+
+  // 렌더링
+  renderPlayer(name, tag, mmrData.data, matchData);
+}
+
+function renderPlayer(name, tag, mmr, matchData) {
+  document.getElementById('display-name').textContent = name;
+  document.getElementById('display-tag').textContent = ' #' + tag;
+
+  // 랭크 정보
+  const tier = mmr.current_data?.currenttierpatched || 'Unranked';
+  const tierName = tier.split(' ')[0];
+  const rankColor = RANK_COLORS[tierName] || '#ff4655';
+  const rr = mmr.current_data?.ranking_in_tier ?? '—';
+  const peakRank = mmr.highest_rank?.patched_tier || '—';
+
+  document.getElementById('rank-icon-text').textContent = tier.replace(' ', '\n');
+  document.getElementById('rank-icon-text').style.color = rankColor;
+  document.getElementById('rank-icon').style.borderColor = rankColor + '88';
+
+  // 랭크 이미지 있으면 표시
+  const rankImgUrl = mmr.current_data?.images?.small;
+  if (rankImgUrl) {
+    document.getElementById('rank-icon').innerHTML =
+      `<img src="${rankImgUrl}" alt="${tier}" onerror="this.parentElement.innerHTML='<div class=\\'rank-icon-text\\' style=\\'color:${rankColor}\\'>${tier}</div>'">`;
+  }
+
+  document.getElementById('rank-text').textContent = tier + (rr !== '—' ? `  ·  ${rr} RR` : '');
+  document.getElementById('rank-text').style.color = rankColor;
+  document.getElementById('player-meta').textContent = `피크: ${peakRank}  ·  Asia Pacific`;
+
+  // 전적 계산 (최근 20경기)
+  let wins = 0, losses = 0, draws = 0;
+  let totalHS = 0, totalShots = 0, matchCount = 0;
+
+  if (matchData?.data && matchData.data.length > 0) {
+    matchData.data.forEach(match => {
+      const stats = match.stats;
+      if (!stats) return;
+
+      const won = match.teams?.red === 'Victory' || match.teams?.blue === 'Victory'
+        ? (stats.team?.toLowerCase() === 'red' ? match.teams.red === 'Victory' : match.teams.blue === 'Victory')
+        : null;
+
+      // 승/패/무 처리
+      const result = match.meta?.result || stats?.result;
+      if (result === 'Win') wins++;
+      else if (result === 'Loss') losses++;
+      else if (result === 'Draw') draws++;
+      else {
+        // 결과 필드가 다를 경우 대비
+        const teamRed = match.teams?.red;
+        const teamBlue = match.teams?.blue;
+        const myTeam = stats.team;
+        if (myTeam && teamRed && teamBlue) {
+          const myScore = myTeam.toLowerCase() === 'red' ? teamRed : teamBlue;
+          const oppScore = myTeam.toLowerCase() === 'red' ? teamBlue : teamRed;
+          if (myScore > oppScore) wins++;
+          else if (myScore < oppScore) losses++;
+          else draws++;
+        }
+      }
+
+      // 헤드샷 계산
+      if (stats.headshots !== undefined) {
+        totalHS += stats.headshots || 0;
+        totalShots += (stats.headshots || 0) + (stats.bodyshots || 0) + (stats.legshots || 0);
+        matchCount++;
+      }
+    });
+  }
+
+  const total = wins + losses + draws;
+  const wr = total > 0 ? ((wins / total) * 100).toFixed(1) : '0.0';
+  const hsPct = totalShots > 0 ? ((totalHS / totalShots) * 100).toFixed(1) : '0.0';
+
+  document.getElementById('wins').textContent = wins;
+  document.getElementById('losses').textContent = losses;
+  document.getElementById('draws').textContent = draws;
+  document.getElementById('wr-pct').textContent = wr + '%';
+  document.getElementById('total-games').textContent = `총 ${total} 게임 (최근 20경기)`;
+
+  document.getElementById('hs-value').innerHTML = hsPct + '<span class="stat-unit">%</span>';
+  document.getElementById('hs-tier').textContent = getHSTier(parseFloat(hsPct));
+  document.getElementById('hs-sub').textContent = `최근 ${matchCount}게임 기준`;
+
+  // API 상태 뱃지
+  document.getElementById('api-status-badge').className = 'api-status live';
+  document.getElementById('api-status-badge').innerHTML = '<div class="dot"></div><span>LIVE DATA</span>';
+
+  show('result');
+
+  setTimeout(() => {
+    document.getElementById('wr-bar-fill').style.width = wr + '%';
+    document.getElementById('hs-bar').style.width = Math.min(parseFloat(hsPct) / 60 * 100, 100) + '%';
+  }, 100);
+}
+
+// 엔터키
+['name-input', 'tag-input', 'api-key-input'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => {
+    if (e.key === 'Enter') doSearch();
+  });
+});
+</script>
+</body>
+</html>
